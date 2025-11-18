@@ -35,8 +35,12 @@ URL = f"https://api.thingspeak.com/channels/3170362/feeds.json?api_key=E2DI968IF
 # --------------------------
 # Fetch IoT Data
 # --------------------------
+# --------------------------
+# Fetch IoT Data
+# --------------------------
 try:
     response = requests.get(URL).json()
+
     if "feeds" not in response or len(response["feeds"]) == 0:
         st.error("❌ No feed data available from ThingSpeak.")
         st.stop()
@@ -46,15 +50,29 @@ try:
     temperature = float(feed["field1"])   # °C
     humidity = float(feed["field2"])      # %
 
+    # Extract timestamp (UTC)
+    timestamp_raw = feed["created_at"]
+
+    # Convert UTC → local IST time
+    try:
+        timestamp_utc = pd.to_datetime(timestamp_raw)
+        timestamp_ist = timestamp_utc.tz_convert("Asia/Kolkata")
+        timestamp = timestamp_ist.strftime("%d %b %Y, %I:%M:%S %p")
+    except:
+        timestamp = timestamp_raw  # fallback
+
     # Display live values
     st.subheader("🌡️ Latest Sensor Readings")
-    c1, c2 = st.columns(2)
+    c1, c2, c3 = st.columns(3)
+
     c1.metric("Temperature", f"{temperature} °C")
     c2.metric("Humidity", f"{humidity} %")
+    c3.metric("Time (IST)", timestamp)
 
 except Exception as e:
     st.error(f"❌ Error fetching IoT data: {e}")
     st.stop()
+
 
 # --------------------------
 # Convert to ML model features
